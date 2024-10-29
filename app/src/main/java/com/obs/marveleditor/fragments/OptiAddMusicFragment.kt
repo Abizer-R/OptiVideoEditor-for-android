@@ -26,9 +26,9 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
-import com.obs.marveleditor.utils.OptiConstant
+import com.obs.videoeditor.editor.OptiConstant
 import com.obs.marveleditor.R
-import com.obs.marveleditor.interfaces.OptiFFMpegCallback
+import com.obs.videoeditor.editor.OptiFFMpegCallback
 import com.obs.marveleditor.utils.VideoUtils.buildMediaSource
 import com.obs.marveleditor.utils.VideoUtils.secToTime
 import com.obs.marveleditor.utils.VideoFrom
@@ -36,25 +36,23 @@ import com.obs.marveleditor.interfaces.OptiDialogueHelper
 import com.github.guilhe.views.SeekBarRangedView
 import com.github.guilhe.views.addActionListener
 import com.google.android.exoplayer2.*
-import com.google.android.exoplayer2.source.TrackGroupArray
-import com.google.android.exoplayer2.trackselection.DefaultTrackSelector
-import com.google.android.exoplayer2.trackselection.TrackSelectionArray
 import com.google.android.exoplayer2.ui.PlayerView
 import com.google.android.exoplayer2.util.Util
-import com.obs.marveleditor.OptiVideoEditor
+import com.obs.videoeditor.editor.OptiVideoEditor
 import com.obs.marveleditor.utils.OptiCommonMethods
 import com.obs.marveleditor.utils.OptiUtils
-import com.obs.marveleditor.utils.saveMediaToFile
+import com.obs.videoeditor.editor.saveMediaToFile
 import java.io.File
 import kotlin.math.roundToLong
 
-class OptiAddMusicFragment : OptiBaseCreatorDialogFragment(), OptiDialogueHelper, OptiFFMpegCallback {
+class OptiAddMusicFragment : OptiBaseCreatorDialogFragment(), OptiDialogueHelper,
+    OptiFFMpegCallback {
 
     private var tagName: String = OptiAddMusicFragment::class.java.simpleName
     private var audioFile: File? = null
     private var videoFile: File? = null
     private var playWhenReady: Boolean? = false
-    private var exoPlayer: SimpleExoPlayer? = null
+    private var exoPlayer: ExoPlayer? = null
     private var sbrvVideoTrim: SeekBarRangedView? = null
     private var acbCrop: AppCompatButton? = null
     private var actvStartTime: AppCompatTextView? = null
@@ -111,7 +109,7 @@ class OptiAddMusicFragment : OptiBaseCreatorDialogFragment(), OptiDialogueHelper
 
         ivRadio?.setOnClickListener {
             if (OptiConstant.hasStoragePermission(requireContext())) {
-                launchAudioVideoPicker()
+                this.launchAudioPicker()
             } else {
                 checkPermission(OptiConstant.AUDIO_GALLERY, Manifest.permission.READ_EXTERNAL_STORAGE)
             }
@@ -119,7 +117,7 @@ class OptiAddMusicFragment : OptiBaseCreatorDialogFragment(), OptiDialogueHelper
 
         tvSelectedAudio?.setOnClickListener {
             if (OptiConstant.hasStoragePermission(requireContext())) {
-                launchAudioVideoPicker()
+                this.launchAudioPicker()
             } else {
                 checkPermission(OptiConstant.AUDIO_GALLERY, Manifest.permission.READ_EXTERNAL_STORAGE)
             }
@@ -151,10 +149,7 @@ class OptiAddMusicFragment : OptiBaseCreatorDialogFragment(), OptiDialogueHelper
     }
 
     private fun initializePlayer() {
-        exoPlayer = ExoPlayerFactory.newSimpleInstance(
-            requireContext(), DefaultRenderersFactory(requireContext()),
-            DefaultTrackSelector(), DefaultLoadControl()
-        )
+        exoPlayer = ExoPlayer.Builder(requireContext()).build()
 
         ePlayer?.player = exoPlayer
 
@@ -203,7 +198,7 @@ class OptiAddMusicFragment : OptiBaseCreatorDialogFragment(), OptiDialogueHelper
         }
     }
 
-    private val playerListener = object : Player.EventListener {
+    private val playerListener = object : Player.Listener {
         override fun onLoadingChanged(isLoading: Boolean) {
             pbLoading?.visibility = if (isLoading) View.VISIBLE else View.GONE
         }
@@ -289,7 +284,7 @@ class OptiAddMusicFragment : OptiBaseCreatorDialogFragment(), OptiDialogueHelper
                                 permission
                             ) == PackageManager.PERMISSION_GRANTED
                         ) {
-                            launchAudioVideoPicker()
+                            this.launchAudioPicker()
                         } else {
                             val intent = Intent()
                             intent.action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
@@ -304,11 +299,12 @@ class OptiAddMusicFragment : OptiBaseCreatorDialogFragment(), OptiDialogueHelper
         }
     }
 
-    private fun launchAudioVideoPicker() {
+    private fun launchAudioPicker() {
         //call the gallery intent
-        val i = Intent(Intent.ACTION_PICK, MediaStore.Audio.Media.EXTERNAL_CONTENT_URI)
-        i.putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("audio/*", "video/*"))
-        startActivityForResult(i, OptiConstant.AUDIO_GALLERY)
+        val intent_upload = Intent()
+        intent_upload.setType("audio/*")
+        intent_upload.setAction(Intent.ACTION_GET_CONTENT)
+        startActivityForResult(intent_upload, OptiConstant.AUDIO_GALLERY)
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
